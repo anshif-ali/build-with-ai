@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simple Calculator</title>
+  <meta name="description" content="A clean, responsive browser-based calculator with full keyboard support and rich dark mode aesthetic.">
+  <style>
+    /* CSS Custom Properties & Design System */
+    :root {
+      --bg-main: #121212;
+      --calculator-bg: #1e1e1e;
+      --calculator-border: rgba(255, 255, 255, 0.08);
+      --display-bg: #161616;
+      
+      --btn-bg: #2a2a2a;
+      --btn-hover: #333333;
+      --btn-active: #404040;
+      
+      --btn-action-bg: #3a3a3c;
+      --btn-action-hover: #48484a;
+      --btn-action-active: #545456;
+      
+      --accent-amber: #ff9500;
+      --accent-amber-hover: #ffaa33;
+      --accent-amber-active: #e08300;
+      
+      --text-primary: #ffffff;
+      --text-secondary: #8e8e93;
+      --text-accent: #ff9500;
+      --error-color: #ff453a;
+      
+      --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-display: "JetBrains Mono", "Fira Code", "Cascadia Code", Consolas, Monaco, "Courier New", monospace;
+      
+      --shadow-calculator: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 0 1px var(--calculator-border);
+      --radius-calculator: 24px;
+      --radius-button: 16px;
+      --radius-display: 16px;
+    }
+
+    /* Base Reset & Centering */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: var(--bg-main);
+      font-family: var(--font-ui);
+      color: var(--text-primary);
+      padding: 16px;
+    }
+
+    /* Calculator Container */
+    .calculator {
+      width: 100%;
+      max-width: 360px;
+      background-color: var(--calculator-bg);
+      border-radius: var(--radius-calculator);
+      box-shadow: var(--shadow-calculator);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Two-Line Display Module */
+    .display-container {
+      background-color: var(--display-bg);
+      border-radius: var(--radius-display);
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      align-items: flex-end;
+      min-height: 100px;
+      word-break: break-all;
+      word-wrap: break-word;
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      transition: border-color 0.2s ease, background-color 0.2s ease;
+    }
+
+    .display-previous {
+      font-family: var(--font-display);
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+      min-height: 1.4em;
+      line-height: 1.4;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 100%;
+    }
+
+    .display-current {
+      font-family: var(--font-display);
+      font-size: 2.5rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      line-height: 1.2;
+      transition: color 0.2s ease, font-size 0.2s ease;
+    }
+
+    /* Error State Styling */
+    .calculator.is-error .display-container {
+      border-color: rgba(255, 69, 58, 0.4);
+      background-color: rgba(255, 69, 58, 0.05);
+    }
+
+    .calculator.is-error .display-current {
+      color: var(--error-color);
+      font-size: 2.2rem;
+    }
+
+    /* Button Grid Layout (4x5) */
+    .button-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    /* Base Button Styling */
+    .btn {
+      appearance: none;
+      border: none;
+      outline: none;
+      background-color: var(--btn-bg);
+      color: var(--text-primary);
+      font-family: var(--font-ui);
+      font-size: 1.35rem;
+      font-weight: 500;
+      border-radius: var(--radius-button);
+      min-height: 56px;
+      min-width: 44px;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      user-select: none;
+      transition: background-color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease, color 0.15s ease;
+    }
+
+    .btn:hover {
+      background-color: var(--btn-hover);
+    }
+
+    .btn:active,
+    .btn.is-pressed {
+      background-color: var(--btn-active);
+      transform: scale(0.94);
+    }
+
+    .btn:focus-visible {
+      outline: 2px solid var(--accent-amber);
+      outline-offset: 2px;
+    }
+
+    /* Special Button Variants */
+    .btn-action {
+      background-color: var(--btn-action-bg);
+      color: var(--text-primary);
+    }
+
+    .btn-action:hover {
+      background-color: var(--btn-action-hover);
+    }
+
+    .btn-action:active,
+    .btn-action.is-pressed {
+      background-color: var(--btn-action-active);
+    }
+
+    .btn-operator {
+      background-color: var(--btn-action-bg);
+      color: var(--accent-amber);
+      font-size: 1.5rem;
+    }
+
+    .btn-operator:hover {
+      background-color: var(--btn-action-hover);
+    }
+
+    .btn-operator.is-active {
+      background-color: var(--accent-amber);
+      color: var(--text-primary);
+    }
+
+    .btn-equals {
+      background-color: var(--accent-amber);
+      color: #ffffff;
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+
+    .btn-equals:hover {
+      background-color: var(--accent-amber-hover);
+    }
+
+    .btn-equals:active,
+    .btn-equals.is-pressed {
+      background-color: var(--accent-amber-active);
+      transform: scale(0.94);
+    }
+
+    .btn-zero {
+      grid-column: span 2;
+      justify-content: flex-start;
+      padding-left: 24px;
+    }
+
+    /* Accessibility: Reduced Motion */
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      .btn,
+      .display-container,
+      .display-current {
+        transition: none !important;
+        animation: none !important;
+      }
+      
+      .btn:active,
+      .btn.is-pressed,
+      .btn-equals:active,
+      .btn-equals.is-pressed {
+        transform: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <main class="calculator" id="calculator" aria-label="Simple Calculator">
+    <!-- Two-Line Display Module -->
+    <div class="display-container">
+      <div id="previous-display" class="display-previous" aria-live="polite" aria-atomic="true"></div>
+      <div id="current-display" class="display-current" aria-live="polite" aria-atomic="true">0</div>
+    </div>
+
+    <!-- 4x5 Button Grid -->
+    <div class="button-grid" role="group" aria-label="Calculator keypad">
+      <!-- Row 1 -->
+      <button type="button" class="btn btn-action" id="btn-clear" aria-label="Clear">C</button>
+      <button type="button" class="btn btn-action" id="btn-delete" aria-label="Backspace">⌫</button>
+      <button type="button" class="btn btn-action" id="btn-percent" aria-label="Percent">%</button>
+      <button type="button" class="btn btn-operator" id="btn-divide" data-operator="/" aria-label="Divide">÷</button>
+
+      <!-- Row 2 -->
+      <button type="button" class="btn btn-digit" data-digit="7">7</button>
+      <button type="button" class="btn btn-digit" data-digit="8">8</button>
+      <button type="button" class="btn btn-digit" data-digit="9">9</button>
+      <button type="button" class="btn btn-operator" id="btn-multiply" data-operator="*" aria-label="Multiply">×</button>
+
+      <!-- Row 3 -->
+      <button type="button" class="btn btn-digit" data-digit="4">4</button>
+      <button type="button" class="btn btn-digit" data-digit="5">5</button>
+      <button type="button" class="btn btn-digit" data-digit="6">6</button>
+      <button type="button" class="btn btn-operator" id="btn-subtract" data-operator="-" aria-label="Subtract">−</button>
+
+      <!-- Row 4 -->
+      <button type="button" class="btn btn-digit" data-digit="1">1</button>
+      <button type="button" class="btn btn-digit" data-digit="2">2</button>
+      <button type="button" class="btn btn-digit" data-digit="3">3</button>
+      <button type="button" class="btn btn-operator" id="btn-add" data-operator="+" aria-label="Add">+</button>
+
+      <!-- Row 5 -->
+      <button type="button" class="btn btn-digit btn-zero" data-digit="0">0</button>
+      <button type="button" class="btn btn-digit" id="btn-decimal" data-digit=".">.</button>
+      <button type="button" class="btn btn-equals" id="btn-equals" aria-label="Equals">=</button>
+    </div>
+  </main>
+
+  <script>
+    /**
+     * CalculatorEngine
+     * Decoupled state machine for arithmetic calculations, floating point precision handling,
+     * error states, and operation chaining.
+     */
+    class CalculatorEngine {
+      constructor() {
+        this.clear();
+      }
+
+      /**
+       * Fully resets engine state to default values.
+       */
+      clear() {
+        this.current = '0';
+        this.previous = '';
+        this.operator = null;
+        this.overwrite = false;
+        this.isError = false;
+      }
+
+      /**
+       * Strips floating point noise (e.g. 0.1 + 0.2 = 0.3 instead of 0.30000000000000004).
+       */
+      formatNumber(num) {
+        if (isNaN(num) || !isFinite(num)) {
+          return 'Error';
+        }
+        const rounded = parseFloat(Number(num).toPrecision(12));
+        return rounded.toString();
+      }
+
+      /**
+       * Handles digit inputs (0-9) and decimal point (.).
+       */
+      appendDigit(digit) {
+        if (this.isError) {
+          this.clear();
+        }
+
+        if (this.overwrite) {
+          this.current = digit === '.' ? '0.' : digit;
+          this.overwrite = false;
+          return;
+        }
+
+        if (digit === '.') {
+          if (this.current.includes('.')) return;
+          if (this.current === '' || this.current === '0') {
+            this.current = '0.';
+            return;
+          }
+          this.current += '.';
+          return;
+        }
+
+        if (digit >= '0' && digit <= '9') {
+          if (this.current === '0') {
+            if (digit === '0') return;
+            this.current = digit;
+            return;
+          }
+          this.current += digit;
+        }
+      }
+
+      /**
+       * Removes last typed character (backspace).
+       */
+      deleteLast() {
+        if (this.isError || this.overwrite) {
+          this.clear();
+          return;
+        }
+
+        if (this.current.length <= 1 || (this.current.length === 2 && this.current.startsWith('-'))) {
+          this.current = '0';
+          return;
+        }
+
+        this.current = this.current.slice(0, -1);
+      }
+
+      /**
+       * Converts current value to percentage (/100).
+       */
+      percent() {
+        if (this.isError) return;
+        const val = parseFloat(this.current);
+        if (isNaN(val)) return;
+
+        const res = val / 100;
+        this.current = this.formatNumber(res);
+        this.overwrite = true;
+      }
+
+      /**
+       * Sets pending operator and handles operation chaining if appropriate.
+       */
+      chooseOperator(op) {
+        if (this.isError) return;
+        if (this.current === '' && this.previous === '') return;
+
+        if (this.previous !== '' && this.operator !== null && !this.overwrite && this.current !== '') {
+          this.compute();
+          if (this.isError) return;
+        }
+
+        this.operator = op;
+
+        if (this.current !== '') {
+          this.previous = this.current;
+          this.current = '';
+        }
+        this.overwrite = false;
+      }
+
+      /**
+       * Performs calculation based on previous, current, and active operator.
+       */
+      compute() {
+        if (this.operator === null || this.previous === '') return;
+
+        const prev = parseFloat(this.previous);
+        const curr = parseFloat(this.current !== '' ? this.current : this.previous);
+
+        if (isNaN(prev) || isNaN(curr)) return;
+
+        let result;
+        switch (this.operator) {
+          case '+':
+            result = prev + curr;
+            break;
+          case '-':
+            result = prev - curr;
+            break;
+          case '*':
+            result = prev * curr;
+            break;
+          case '/':
+            if (curr === 0) {
+              this.isError = true;
+              this.current = 'Error';
+              this.previous = '';
+              this.operator = null;
+              this.overwrite = true;
+              return;
+            }
+            result = prev / curr;
+            break;
+          default:
+            return;
+        }
+
+        if (isNaN(result) || !isFinite(result)) {
+          this.isError = true;
+          this.current = 'Error';
+          this.previous = '';
+          this.operator = null;
+          this.overwrite = true;
+          return;
+        }
+
+        this.current = this.formatNumber(result);
+        this.previous = '';
+        this.operator = null;
+        this.overwrite = true;
+      }
+    }
+
+    // --- DOM Controller & UI State Synchronization ---
+    document.addEventListener('DOMContentLoaded', () => {
+      const calculatorEl = document.getElementById('calculator');
+      const previousDisplayEl = document.getElementById('previous-display');
+      const currentDisplayEl = document.getElementById('current-display');
+      const buttonGridEl = document.querySelector('.button-grid');
+      const operatorButtons = document.querySelectorAll('.btn-operator');
+
+      const operatorSymbols = {
+        '/': '÷',
+        '*': '×',
+        '-': '−',
+        '+': '+'
+      };
+
+      const engine = new CalculatorEngine();
+
+      /**
+       * Synchronizes the CalculatorEngine state with the DOM elements.
+       */
+      function updateDisplay() {
+        // Lower line display
+        currentDisplayEl.textContent = engine.current !== '' ? engine.current : '0';
+
+        // Upper line display
+        if (engine.previous !== '' && engine.operator !== null) {
+          const symbol = operatorSymbols[engine.operator] || engine.operator;
+          previousDisplayEl.textContent = `${engine.previous} ${symbol}`;
+        } else {
+          previousDisplayEl.textContent = '';
+        }
+
+        // Toggle Error State styling
+        if (engine.isError) {
+          calculatorEl.classList.add('is-error');
+        } else {
+          calculatorEl.classList.remove('is-error');
+        }
+
+        // Toggle active operator highlight
+        operatorButtons.forEach(btn => {
+          const op = btn.getAttribute('data-operator');
+          if (engine.operator !== null && engine.operator === op && engine.current === '') {
+            btn.classList.add('is-active');
+          } else {
+            btn.classList.remove('is-active');
+          }
+        });
+      }
+
+      // Initial render
+      updateDisplay();
+
+      // Button Click Event Delegation
+      buttonGridEl.addEventListener('click', (e) => {
+        const button = e.target.closest('button');
+        if (!button) return;
+
+        if (button.classList.contains('btn-digit')) {
+          const digit = button.getAttribute('data-digit');
+          if (digit) engine.appendDigit(digit);
+        } else if (button.classList.contains('btn-operator')) {
+          const op = button.getAttribute('data-operator');
+          if (op) engine.chooseOperator(op);
+        } else if (button.id === 'btn-equals') {
+          engine.compute();
+        } else if (button.id === 'btn-clear') {
+          engine.clear();
+        } else if (button.id === 'btn-delete') {
+          engine.deleteLast();
+        } else if (button.id === 'btn-percent') {
+          engine.percent();
+        }
+
+        updateDisplay();
+      });
+
+      // Global Physical Keyboard Navigation & Shortcuts
+      document.addEventListener('keydown', (e) => {
+        // Prevent action if modifier keys (Ctrl, Alt, Meta) are held
+        if (e.ctrlKey || e.altKey || e.metaKey) return;
+
+        let targetBtn = null;
+
+        if (e.key >= '0' && e.key <= '9') {
+          engine.appendDigit(e.key);
+          targetBtn = document.querySelector(`.btn-digit[data-digit="${e.key}"]`);
+        } else if (e.key === '.') {
+          engine.appendDigit('.');
+          targetBtn = document.getElementById('btn-decimal');
+        } else if (['+', '-', '*', '/'].includes(e.key)) {
+          e.preventDefault();
+          engine.chooseOperator(e.key);
+          targetBtn = document.querySelector(`.btn-operator[data-operator="${e.key}"]`);
+        } else if (e.key === 'Enter' || e.key === '=') {
+          e.preventDefault();
+          engine.compute();
+          targetBtn = document.getElementById('btn-equals');
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          engine.clear();
+          targetBtn = document.getElementById('btn-clear');
+        } else if (e.key === 'Backspace') {
+          e.preventDefault();
+          engine.deleteLast();
+          targetBtn = document.getElementById('btn-delete');
+        } else if (e.key === '%') {
+          e.preventDefault();
+          engine.percent();
+          targetBtn = document.getElementById('btn-percent');
+        }
+
+        // Trigger visual button press feedback animation
+        if (targetBtn) {
+          targetBtn.classList.add('is-pressed');
+          setTimeout(() => targetBtn.classList.remove('is-pressed'), 120);
+        }
+
+        updateDisplay();
+      });
+    });
+  </script>
+</body>
+</html>
